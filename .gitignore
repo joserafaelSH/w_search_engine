@@ -2,3 +2,6 @@
 */target
 search_engine.redb
 *.redb
+*/Cargo.lock
+Cargo.lock
+*.json

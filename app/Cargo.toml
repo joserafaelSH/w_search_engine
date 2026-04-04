@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 search_engine_core = { path = "../search_engine_core" }
+

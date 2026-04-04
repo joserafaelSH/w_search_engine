@@ -1,33 +1,37 @@
+use std::collections::HashMap;
+use redb::ReadableTable;
 use redb::{Error, ReadOnlyTable};
 use crate::model::Node;
 
-pub fn build_path(
-    table: &ReadOnlyTable<u64, Node>,
+pub fn build_full_path(
     id: u64,
+    cache: &mut HashMap<u64, String>,
+    table: &redb::ReadOnlyTable<u64, Node>,
 ) -> Result<String, Error> {
-    let mut path_parts = Vec::new();
-    let mut file_id = id;
-    let mut drive = 'C';
-
-    loop {
-        let entry = table.get(&file_id)?;
-
-        let node = match entry {
-            Some(v) => v.value(),
-            None => break,
-        };
-
-        path_parts.push(node.name.clone());
-        drive = node.drive_letter;
-
-        if node.parent_id == 0 || node.parent_id == file_id {
-            break;
-        }
-
-        file_id = node.parent_id;
+    // ✅ already computed
+    if let Some(path) = cache.get(&id) {
+        return Ok(path.clone());
     }
 
-    path_parts.reverse();
+    let node_guard = table.get(&id)?;
+    let node = match node_guard {
+        Some(n) => n.value(),
+        None => return Ok(String::new()), // or error
+    };
 
-    Ok(format!("{}:\\{}", drive, path_parts.join("\\")))
+    let path = if node.parent_id == 0 {
+        // root
+        format!("{}:\\{}", node.drive_letter, node.name)
+    } else {
+        let parent_path = build_full_path(node.parent_id, cache, table)?;
+
+        if parent_path.ends_with('\\') {
+            format!("{}{}", parent_path, node.name)
+        } else {
+            format!("{}\\{}", parent_path, node.name)
+        }
+    };
+
+    cache.insert(id, path.clone());
+    Ok(path)
 }
