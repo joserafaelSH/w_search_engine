@@ -18,7 +18,7 @@ impl SearchEngine {
         write_txn.open_table(TABLE_MAP_FILE_ID)?;
         write_txn.open_table(TABLE_MAP_FILE_NAME)?;
         write_txn.commit()?;
-
+        
         Ok(Self { db: Arc::new(db) }) // ✅ wrap in Arc
     }
 

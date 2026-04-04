@@ -5,4 +5,10 @@ edition = "2024"
 
 [dependencies]
 search_engine_core = { path = "../search_engine_core" }
-
+eframe = "0.27"
+egui = "0.27"
+crossbeam-channel = "0.5"
+windows = { version = "0.54", features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse"
+] }
