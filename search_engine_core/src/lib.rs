@@ -1,4 +1,3 @@
-mod db;
 mod engine;
 mod indexer;
 mod model;

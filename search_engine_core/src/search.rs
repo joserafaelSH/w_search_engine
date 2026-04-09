@@ -1,48 +1,44 @@
-use redb::{Database, Error, ReadableDatabase};
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use rusqlite::{Connection, Result};
+use std::collections::HashMap;
+
 use crate::path::build_full_path;
-use crate::db::{TABLE_MAP_FILE_ID, TABLE_MAP_FILE_NAME};
 use crate::model::SearchResult;
 
-
 pub fn search_internal(
-    db: &Arc<Database>,
+    conn: &Connection,
     query: &str,
-) -> Result<Vec<SearchResult>, Error> {
+) -> Result<Vec<SearchResult>> {
     let mut results = Vec::with_capacity(100);
-
-    let read_txn = db.begin_read()?;
-    let table_name = read_txn.open_table(TABLE_MAP_FILE_NAME)?;
-    let table_id = read_txn.open_table(TABLE_MAP_FILE_ID)?;
 
     let query = query.to_ascii_lowercase();
 
-    let start = (query.clone(), 0);
-    let end = (query.clone() + "\u{FFFF}", u64::MAX);
+    // 🔥 prefix search (LIKE 'query%')
+    let like_query = format!("{}%", query);
 
-    let range = table_name.range(start..=end)?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, is_directory FROM files 
+         WHERE lower(name) LIKE ?1 
+         LIMIT 100"
+    )?;
 
-    // 🔥 CACHE FOR THIS SEARCH
+    let mut rows = stmt.query([like_query])?;
+
+    // 🔥 cache for path reconstruction
     let mut path_cache: HashMap<u64, String> = HashMap::new();
 
-    for entry in range.take(100) {
-        let (key_guard, value_guard) = entry?;
-        let (_, file_id) = key_guard.value();
-        let is_directory = value_guard.value();
+    while let Some(row) = rows.next()? {
+        let file_id = row.get::<_, i64>(0)? as u64;
+        let file_name: String = row.get(1)?;
+        let is_directory = row.get::<_, i64>(2)? != 0;
 
-        if let Some(node) = table_id.get(&file_id)? {
-            let node = node.value();
+        // 🔥 build full path (recursive with cache)
+        let full_path = build_full_path(conn, file_id, &mut path_cache)?;
 
-            // 🔥 BUILD FULL PATH HERE
-            let full_path = build_full_path(file_id, &mut path_cache, &table_id)?;
-
-            results.push(SearchResult {
-                path: full_path,
-                file_name: node.name.clone(),
-                is_directory,
-            });
-        }
+        results.push(SearchResult {
+            path: full_path,
+            file_name,
+            is_directory,
+        });
     }
 
     Ok(results)

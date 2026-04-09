@@ -4,11 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+inquire = "0.9.4"
+once_cell = "1.21.4"
 search_engine_core = { path = "../search_engine_core" }
-eframe = "0.27"
-egui = "0.27"
-crossbeam-channel = "0.5"
-windows = { version = "0.54", features = [
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_UI_Input_KeyboardAndMouse"
-] }
+ratatui = { version = "0.28", features = ["macros"] }
+crossterm = "0.27"

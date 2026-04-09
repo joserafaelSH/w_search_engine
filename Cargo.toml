@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "search_engine_core",
-    "app"
+    "app", 
+    "background"
 ]

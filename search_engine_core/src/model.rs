@@ -1,7 +1,6 @@
-use redb_derive::{Key, Value};
-use redb::Value;
+use std::fmt;
 
-#[derive(Debug, Key, Value, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Node {
     pub parent_id: u64,
     pub name: String,
@@ -14,4 +13,9 @@ pub struct SearchResult {
     pub path: String,
     pub file_name: String,
     pub is_directory: bool,
+}
+impl fmt::Display for SearchResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {}, {})", self.path, self.file_name, self.is_directory)
+    }
 }
