@@ -12,6 +12,7 @@ use ratatui::{
 use search_engine_core::{SearchEngine, SearchResult};
 use std::io;
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 fn main() -> io::Result<()> {
     // Setup terminal
@@ -41,6 +42,8 @@ struct App {
     query: String,
     results: Vec<SearchResult>,
     selected_index: usize,
+    last_search_time: Option<Instant>,
+    debounce_duration: Duration,
 }
 
 impl App {
@@ -50,12 +53,17 @@ impl App {
             query: String::new(),
             results: Vec::new(),
             selected_index: 0,
+            last_search_time: None,
+            debounce_duration: Duration::from_millis(150),
         }
     }
 
     fn run(&mut self, terminal: &mut Terminal<ratatui::backend::CrosstermBackend<io::Stdout>>) {
         loop {
             terminal.draw(|f| self.ui(f)).expect("Failed to draw");
+
+            // Execute pending search if debounce has elapsed
+            self.execute_pending_search();
 
             if let Event::Key(key) = event::read().expect("Failed to read event") {
                 if key.kind != KeyEventKind::Press {
@@ -64,11 +72,11 @@ impl App {
                 match key.code {
                     KeyCode::Char(c) => {
                         self.query.push(c);
-                        self.search();
+                        self.schedule_search();
                     }
                     KeyCode::Backspace => {
                         self.query.pop();
-                        self.search();
+                        self.schedule_search();
                     }
                     KeyCode::Down | KeyCode::Tab => {
                         if !self.results.is_empty() {
@@ -110,6 +118,19 @@ impl App {
         };
         self.results.truncate(20);
         self.selected_index = 0;
+    }
+
+    fn schedule_search(&mut self) {
+        self.last_search_time = Some(Instant::now());
+    }
+
+    fn execute_pending_search(&mut self) {
+        if let Some(last_time) = self.last_search_time {
+            if last_time.elapsed() >= self.debounce_duration {
+                self.last_search_time = None;
+                self.search();
+            }
+        }
     }
 
     fn ui(&self, f: &mut Frame) {

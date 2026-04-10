@@ -4,3 +4,7 @@ search_engine.redb
 *.redb
 *.json
 *.db
+search.db-shm
+search.db-wal
+search.db
+index.built

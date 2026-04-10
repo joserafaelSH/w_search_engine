@@ -11,6 +11,9 @@ fn main() -> Result<()> {
     let engine = SearchEngine::open("search.db")?;
     println!("[DAEMON] Engine ready");
 
+    // engine.build_index()?;
+    // return Ok(());
+
     // ✅ Proper "run once" flag
     if !Path::new("index.built").exists() {
         println!("[INDEX] Running initial full index...");
